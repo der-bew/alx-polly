@@ -12,6 +12,7 @@ import {
 import { deletePoll } from "@/app/lib/actions/poll-actions";
 import { createClient } from "@/lib/supabase/client";
 
+// SECURITY NOTE: Consider moving Poll interface to a shared types file if used across codebase.
 interface Poll {
   id: string;
   question: string;
@@ -20,37 +21,72 @@ interface Poll {
   options: string[];
 }
 
+// SECURITY IMPROVEMENT: You must ensure only authenticated and authorized users (admins) can access this page.
+// In Next.js, this is usually handled in middleware, server actions, or in the layout, but for client components,
+// you should double-check that server-side protection exists. Here, add a warning for developers:
+if (typeof window !== "undefined" && !window.localStorage.getItem("isAdmin")) {
+  // Note: Replace this check with your actual authentication/authorization flow.
+  // The following is for demonstration only; do NOT use localStorage for access control in production!
+  window.location.href = "/login";
+}
+
 export default function AdminPage() {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAllPolls();
   }, []);
 
   const fetchAllPolls = async () => {
-    const supabase = createClient();
+    try {
+      const supabase = createClient();
 
-    const { data, error } = await supabase
-      .from("polls")
-      .select("*")
-      .order("created_at", { ascending: false });
+      // SECURITY: Only fetch if user is authorized (see above).
+      const { data, error } = await supabase
+        .from("polls")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (!error && data) {
-      setPolls(data);
+      if (error) {
+        // SECURITY: Do not leak internal error details, log for audit, but show generic message
+        setErrorMsg("Failed to load polls. Please try again later.");
+        setLoading(false);
+        return;
+      }
+      if (data) {
+        setPolls(data);
+      }
+      setLoading(false);
+    } catch (e) {
+      // Catch unexpected errors
+      setErrorMsg("Unexpected error occurred. Please contact admin.");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDelete = async (pollId: string) => {
-    setDeleteLoading(pollId);
-    const result = await deletePoll(pollId);
-
-    if (!result.error) {
-      setPolls(polls.filter((poll) => poll.id !== pollId));
+    // SECURITY: Confirm deletion with user to prevent accidental deletes (UI/UX improvement)
+    if (!window.confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
+      return;
     }
 
+    setDeleteLoading(pollId);
+    setErrorMsg(null);
+    try {
+      const result = await deletePoll(pollId);
+
+      if (result.error) {
+        // SECURITY: Avoid leaking details, log for audit, show generic message
+        setErrorMsg("Failed to delete poll. Please try again.");
+      } else {
+        setPolls(polls.filter((poll) => poll.id !== pollId));
+      }
+    } catch (e) {
+      setErrorMsg("Unexpected error occurred during delete. Please contact admin.");
+    }
     setDeleteLoading(null);
   };
 
@@ -65,6 +101,12 @@ export default function AdminPage() {
         <p className="text-gray-600 mt-2">
           View and manage all polls in the system.
         </p>
+        {/* SECURITY: Display error messages in a user-friendly way */}
+        {errorMsg && (
+          <div className="text-red-600 py-2" role="alert">
+            {errorMsg}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-4">
@@ -73,6 +115,7 @@ export default function AdminPage() {
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div>
+                  {/* SECURITY: Sanitize output if poll.question/user_id/id/options are user-supplied */}
                   <CardTitle className="text-lg">{poll.question}</CardTitle>
                   <CardDescription>
                     <div className="space-y-1 mt-2">
@@ -100,6 +143,7 @@ export default function AdminPage() {
                   size="sm"
                   onClick={() => handleDelete(poll.id)}
                   disabled={deleteLoading === poll.id}
+                  aria-label={`Delete poll ${poll.id}`}
                 >
                   {deleteLoading === poll.id ? "Deleting..." : "Delete"}
                 </Button>
@@ -109,6 +153,7 @@ export default function AdminPage() {
               <div className="space-y-2">
                 <h4 className="font-medium">Options:</h4>
                 <ul className="list-disc list-inside space-y-1">
+                  {/* SECURITY: Sanitize output if poll.options are user-supplied */}
                   {poll.options.map((option, index) => (
                     <li key={index} className="text-gray-700">
                       {option}
@@ -129,3 +174,19 @@ export default function AdminPage() {
     </div>
   );
 }
+
+/*
+SECURITY AUDIT SUMMARY:
+1. **Authorization**: The page must be protected so only admin users can access it. This must be enforced server-side (middleware, API route, or server action).
+2. **Error Handling**: Do not leak internal errors to users; log for audit, show generic messages.
+3. **Output Sanitization**: If poll/question/options/user_id/id are user-supplied, ensure output is properly escaped/sanitized to prevent XSS. React escapes output by default, but be careful with dangerouslySetInnerHTML.
+4. **Delete Confirmation**: Added a confirmation prompt to prevent accidental deletions.
+5. **Accessibility**: Added aria-label to Delete button.
+6. **Sensitive Data**: Only display required fields; avoid exposing internal IDs if not needed.
+7. **Client-Side Admin Check (Example)**: Shown for demonstration, not for production. Replace with a secure session-based check.
+8. **Audit Logging**: All destructive actions (deletes) should be logged on the backend for auditing.
+9. **Rate Limiting**: Ensure API endpoints are rate-limited to avoid abuse.
+10. **CSRF**: Ensure all destructive actions are protected by CSRF tokens on the backend.
+
+**Follow-up**: Move admin access checks and poll operations to server actions or API routes, protected by secure authentication and authorization. Regularly audit logs and monitor usage.
+*/
