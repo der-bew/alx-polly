@@ -1,12 +1,14 @@
-import { type NextRequest } from 'next/server'
-import { updateSession } from '@/lib/supabase/middleware'
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request)
-}
-
-export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|login|register|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+// Protect /admin routes
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith('/admin')) {
+    const user = getSessionUser(request); // Implement session extraction
+    if (!user || !user.isAdmin) {
+      return NextResponse.redirect('/login');
+    }
+  }
+  return NextResponse.next();
 }
