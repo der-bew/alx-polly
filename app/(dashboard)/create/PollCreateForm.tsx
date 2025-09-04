@@ -6,16 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const MAX_OPTIONS = 10;
+const MAX_QUESTION_LENGTH = 200;
+const MAX_OPTION_LENGTH = 100;
+
 export default function PollCreateForm() {
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleOptionChange = (idx: number, value: string) => {
-    setOptions((opts) => opts.map((opt, i) => (i === idx ? value : opt)));
+    if (value.length <= MAX_OPTION_LENGTH) {
+      setOptions((opts) => opts.map((opt, i) => (i === idx ? value : opt)));
+    }
   };
 
-  const addOption = () => setOptions((opts) => [...opts, ""]);
+  const addOption = () => setOptions((opts) => (opts.length < MAX_OPTIONS ? [...opts, ""] : opts));
   const removeOption = (idx: number) => {
     if (options.length > 2) {
       setOptions((opts) => opts.filter((_, i) => i !== idx));
@@ -27,9 +33,26 @@ export default function PollCreateForm() {
       action={async (formData) => {
         setError(null);
         setSuccess(false);
+
+        // Client-side validation (additional)
+        const question = formData.get("question") as string;
+        const opts = options.filter((opt) => opt.trim().length > 0);
+        if (!question || question.length > MAX_QUESTION_LENGTH) {
+          setError("Question is required and must be under 200 characters.");
+          return;
+        }
+        if (opts.length < 2 || opts.length > MAX_OPTIONS) {
+          setError(`Provide between 2 and ${MAX_OPTIONS} options.`);
+          return;
+        }
+        if (opts.some((opt) => opt.length > MAX_OPTION_LENGTH)) {
+          setError("Each option must be under 100 characters.");
+          return;
+        }
+
         const res = await createPoll(formData);
         if (res?.error) {
-          setError(res.error);
+          setError("Unable to create poll. Please try again."); // Don't show raw error
         } else {
           setSuccess(true);
           setTimeout(() => {
@@ -41,7 +64,12 @@ export default function PollCreateForm() {
     >
       <div>
         <Label htmlFor="question">Poll Question</Label>
-        <Input name="question" id="question" required />
+        <Input
+          name="question"
+          id="question"
+          required
+          maxLength={MAX_QUESTION_LENGTH}
+        />
       </div>
       <div>
         <Label>Options</Label>
@@ -52,6 +80,7 @@ export default function PollCreateForm() {
               value={opt}
               onChange={(e) => handleOptionChange(idx, e.target.value)}
               required
+              maxLength={MAX_OPTION_LENGTH}
             />
             {options.length > 2 && (
               <Button type="button" variant="destructive" onClick={() => removeOption(idx)}>
@@ -60,7 +89,12 @@ export default function PollCreateForm() {
             )}
           </div>
         ))}
-        <Button type="button" onClick={addOption} variant="secondary">
+        <Button
+          type="button"
+          onClick={addOption}
+          variant="secondary"
+          disabled={options.length >= MAX_OPTIONS}
+        >
           Add Option
         </Button>
       </div>
@@ -69,4 +103,4 @@ export default function PollCreateForm() {
       <Button type="submit">Create Poll</Button>
     </form>
   );
-} 
+}
