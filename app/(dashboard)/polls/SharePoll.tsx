@@ -13,24 +13,36 @@ import {
 import { Copy, Share2, Twitter, Facebook, Mail } from "lucide-react";
 import { toast } from "sonner";
 
-interface VulnerableShareProps {
+interface SharePollProps {
   pollId: string;
   pollTitle: string;
 }
 
-export default function VulnerableShare({
-  pollId,
-  pollTitle,
-}: VulnerableShareProps) {
+/**
+ * Renders a component for sharing a poll.
+ *
+ * This component generates a shareable URL for the poll and provides buttons
+ * to copy the link or share it on social media platforms.
+ *
+ * @param {SharePollProps} props - The component props.
+ * @param {string} props.pollId - The ID of the poll to be shared.
+ * @param {string} props.pollTitle - The title of the poll.
+ * @returns {JSX.Element} The rendered share poll component.
+ */
+export default function SharePoll({ pollId, pollTitle }: SharePollProps) {
   const [shareUrl, setShareUrl] = useState("");
 
   useEffect(() => {
-    // Generate the share URL
+    // Generate the full shareable URL on the client-side.
+    // WHY: This ensures the URL is correct based on the user's current domain.
     const baseUrl = window.location.origin;
     const pollUrl = `${baseUrl}/polls/${pollId}`;
     setShareUrl(pollUrl);
   }, [pollId]);
 
+  /**
+   * Copies the shareable URL to the user's clipboard.
+   */
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
@@ -40,6 +52,9 @@ export default function VulnerableShare({
     }
   };
 
+  /**
+   * Opens a new window to share the poll on Twitter.
+   */
   const shareOnTwitter = () => {
     const text = encodeURIComponent(`Check out this poll: ${pollTitle}`);
     const url = encodeURIComponent(shareUrl);
@@ -49,6 +64,9 @@ export default function VulnerableShare({
     );
   };
 
+  /**
+   * Opens a new window to share the poll on Facebook.
+   */
   const shareOnFacebook = () => {
     const url = encodeURIComponent(shareUrl);
     window.open(
@@ -57,6 +75,9 @@ export default function VulnerableShare({
     );
   };
 
+  /**
+   * Opens the user's default email client to share the poll.
+   */
   const shareViaEmail = () => {
     const subject = encodeURIComponent(`Poll: ${pollTitle}`);
     const body = encodeURIComponent(
@@ -77,7 +98,6 @@ export default function VulnerableShare({
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* URL Display */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Shareable Link
@@ -95,7 +115,6 @@ export default function VulnerableShare({
           </div>
         </div>
 
-        {/* Social Sharing Buttons */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-700">
             Share on social media

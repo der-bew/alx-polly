@@ -1,3 +1,11 @@
+/**
+ * Renders the footer for the application.
+ *
+ * This component displays copyright information and links to various pages
+ * such as Privacy Policy, Terms of Service, and Contact.
+ *
+ * @returns {JSX.Element} The rendered footer component.
+ */
 export function Footer() {
   return (
     <footer className="border-t bg-white py-4">

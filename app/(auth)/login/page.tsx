@@ -8,44 +8,57 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { login } from '@/app/lib/actions/auth-actions';
 
-// SECURITY IMPROVEMENTS:
-// 1. Prevent Open Redirects: Ensure window.location.href is only set to a safe, expected path (/polls).
-// 2. Prevent Error Leaks: Only show generic error messages to users, not internal details.
-// 3. Prevent Timing Attacks: Keep error and loading state handling consistent.
-// 4. Prevent XSS: React escapes error output by default, but extra care is taken here.
-// 5. Rate Limiting & Brute Force Protection: This should be handled server-side in login(), but a note is added.
-// 6. Use HTTPS for all navigation/requests (assumed enforced elsewhere, but add a warning).
-
+/**
+ * Renders the user login page.
+ *
+ * This component provides a form for users to enter their email and password.
+ * It handles form submission, calls the server-side `login` action, and provides
+ * user feedback on success or failure.
+ *
+ * @returns {JSX.Element} The rendered login page component.
+ */
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handles the form submission for the login attempt.
+   *
+   * It constructs a FormData object, calls the `login` server action, and manages
+   * loading and error states. On successful login, it redirects the user to the
+   * main polls page.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} event - The form submission event.
+   */
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setError(null);
 
     const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
 
-    // Defensive: Don't leak raw error messages to users
-    let genericErrorMsg = 'Login failed. Please check your credentials and try again.';
-
+    // The `login` action is a server action, so this call is a secure RPC
+    // to the backend.
     try {
-      const result = await login({ email, password });
+      const result = await login({ 
+        email: formData.get('email') as string,
+        password: formData.get('password') as string
+      });
 
-      // Defensive: Don't allow redirect to untrusted URLs
+      // If the server action returns an error, display a generic message.
+      // WHY: We avoid displaying the raw error to prevent leaking backend details.
       if (result?.error) {
-        setError(genericErrorMsg);
+        setError('Login failed. Please check your credentials and try again.');
         setLoading(false);
       } else {
-        // Only allow navigation to a hardcoded safe location
+        // On success, perform a full page reload to the /polls route.
+        // WHY: A full reload ensures the entire app state, including user session,
+        // is correctly initialized.
         window.location.href = '/polls';
       }
     } catch (e) {
-      // Catch any thrown errors and set generic error
-      setError(genericErrorMsg);
+      // Catch any unexpected network or server errors.
+      setError('An unexpected error occurred. Please try again.');
       setLoading(false);
     }
   };
@@ -99,11 +112,3 @@ export default function LoginPage() {
   );
 }
 
-/**
- * SECURITY AUDIT NOTES:
- * - Ensure server-side login() implements rate limiting, brute-force protection, and returns only generic errors.
- * - Ensure HTTPS is enforced throughout the app (usually in deployment config).
- * - Never interpolate error messages from the server directly to user output.
- * - Consider adding CSRF protection if this form is used with non-SPA navigation.
- * - Always validate and sanitize input on the server side.
- */

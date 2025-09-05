@@ -9,34 +9,55 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { register } from '@/app/lib/actions/auth-actions';
 
 /**
- * Security Audit & Fixes:
- * 1. **Password Policy**: Enforce strong password requirements on the client side (min length, complexity).
- * 2. **Email Format Validation**: Add extra validation for email format.
- * 3. **Error Handling**: Avoid leaking detailed backend errors to user, generalize error message.
- * 4. **Prevent Multiple Submits**: Disable form while loading and prevent double submit.
- * 5. **Autofill Attributes**: Recommend using autocomplete attributes for name/email/password.
- * 6. **No Sensitive Data in URL**: Ensure no sensitive data leaks through the URL.
- * 7. **XSS Safe Error Display**: Ensure error messages displayed are safe from XSS (generalized by point 3).
+ * Validates if a password meets the defined strength criteria.
+ *
+ * @param {string} password - The password to validate.
+ * @returns {boolean} - True if the password is strong, false otherwise.
  */
-
 function isStrongPassword(password: string) {
-  // Min 8 chars, at least one upper, one lower, one number, one special char
+  // Requires min 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char.
   return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/.test(password);
 }
 
+/**
+ * Validates if a string is a properly formatted email address.
+ *
+ * @param {string} email - The email to validate.
+ * @returns {boolean} - True if the email is valid, false otherwise.
+ */
 function isValidEmail(email: string) {
-  // Simple RFC 5322 compliant regex
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // Basic regex for email format validation.
+  return /^[^
+@]+@[^
+@]+\.[^
+@]+$/.test(email);
 }
 
+/**
+ * Renders the user registration page.
+ *
+ * This component provides a form for new users to sign up. It includes client-side
+ * validation for email format, password strength, and password confirmation.
+ * On submission, it calls the `register` server action.
+ *
+ * @returns {JSX.Element} The rendered registration page component.
+ */
 export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Handles the form submission for user registration.
+   *
+   * It performs client-side validation before calling the `register` server action.
+   * Manages loading and error states, providing feedback to the user.
+   *
+   * @param {React.FormEvent<HTMLFormElement>} event - The form submission event.
+   */
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (loading) return; // Prevent double submit
+    if (loading) return; // Prevent multiple submissions
     setLoading(true);
     setError(null);
 
@@ -46,7 +67,8 @@ export default function RegisterPage() {
     const password = formData.get('password') as string;
     const confirmPassword = formData.get('confirmPassword') as string;
 
-    // Client-side validations
+    // WHY: Client-side validation provides immediate feedback to the user,
+    // improving the user experience and reducing unnecessary server requests.
     if (!isValidEmail(email)) {
       setError('Please enter a valid email address.');
       setLoading(false);
@@ -55,7 +77,7 @@ export default function RegisterPage() {
 
     if (!isStrongPassword(password)) {
       setError(
-        'Passwords must be at least 8 characters long and contain upper and lower case letters, a number, and a special character.'
+        'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character.'
       );
       setLoading(false);
       return;
@@ -71,14 +93,15 @@ export default function RegisterPage() {
       const result = await register({ name, email, password });
 
       if (result?.error) {
-        // Generalize error to prevent leaking backend details
-        setError('Registration failed. Please try again or contact support.');
+        // Display a generic error to avoid leaking backend details.
+        setError('Registration failed. An account with this email may already exist.');
         setLoading(false);
       } else {
-        window.location.href = '/polls'; // Full reload to pick up session
+        // On success, redirect with a full page reload.
+        window.location.href = '/polls';
       }
     } catch (err) {
-      setError('Network error. Please try again.');
+      setError('A network error occurred. Please try again.');
       setLoading(false);
     }
   };

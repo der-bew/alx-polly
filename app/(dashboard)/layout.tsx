@@ -15,21 +15,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/app/lib/context/auth-context";
 
+/**
+ * Provides the main layout for the authenticated user dashboard.
+ *
+ * This layout includes the header with navigation and user menu, the main content area,
+ * and the footer. It also enforces authentication by redirecting unauthenticated
+ * users to the login page.
+ *
+ * @param {object} props - The component props.
+ * @param {ReactNode} props.children - The page content to be rendered within the layout.
+ * @returns {JSX.Element | null} The rendered dashboard layout or a loading/null state.
+ */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const { user, signOut, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    // WHY: This effect protects the dashboard routes. If the user is not authenticated
+    // after the loading state is resolved, they are redirected to the login page.
     if (!loading && !user) {
       router.push("/login");
     }
   }, [user, loading, router]);
 
+  /**
+   * Handles the user sign-out process.
+   *
+   * It calls the `signOut` method from the auth context and then redirects the user
+   * to the login page.
+   */
   const handleSignOut = async () => {
     await signOut();
     router.push("/login");
   };
 
+  // While the authentication status is being determined, show a loading message.
+  // This prevents a flash of unauthenticated content.
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-50">
@@ -38,10 +59,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  // If there is no user, return null as the redirect is being handled.
   if (!user) {
     return null;
   }
 
+  // Render the full dashboard layout for authenticated users.
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <header className="border-b bg-white sticky top-0 z-10">

@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { getUserPolls } from '@/app/lib/actions/poll-actions';
 import PollActions from './PollActions'; 
 
+/**
+ * Renders the main dashboard page displaying the user's polls.
+ *
+ * This server component fetches the polls created by the currently authenticated
+ * user using the `getUserPolls` action. It then displays the polls in a grid,
+ * providing options to create new polls or interact with existing ones.
+ *
+ * @returns {Promise<JSX.Element>} The rendered polls dashboard page.
+ */
 export default async function PollsPage() {
   const { polls, error } = await getUserPolls();
 
@@ -18,6 +27,7 @@ export default async function PollsPage() {
         {polls && polls.length > 0 ? (
           polls.map((poll) => <PollActions key={poll.id} poll={poll} />)
         ) : (
+          // WHY: This empty state provides clear guidance to new users on what to do next.
           <div className="flex flex-col items-center justify-center py-12 text-center col-span-full">
             <h2 className="text-xl font-semibold mb-2">No polls yet</h2>
             <p className="text-slate-500 mb-6">Create your first poll to get started</p>

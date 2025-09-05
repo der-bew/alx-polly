@@ -6,6 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+/**
+ * Renders a form for editing an existing poll.
+ *
+ * This component is pre-populated with the existing poll data. It allows the user
+ * to modify the question and options, and then submit the changes via the
+ * `updatePoll` server action.
+ *
+ * @param {object} props - The component props.
+ * @param {any} props.poll - The poll object to be edited.
+ * @returns {JSX.Element} The rendered poll editing form.
+ */
 export default function EditPollForm({ poll }: { poll: any }) {
   const [question, setQuestion] = useState(poll.question);
   const [options, setOptions] = useState<string[]>(poll.options || []);
@@ -28,10 +39,13 @@ export default function EditPollForm({ poll }: { poll: any }) {
       action={async (formData) => {
         setError(null);
         setSuccess(false);
-        formData.set('question', question);
-        formData.delete('options');
-        options.forEach((opt) => formData.append('options', opt));
-        const res = await updatePoll(poll.id, formData);
+
+        // Manually construct the FormData to be sent to the server action.
+        const updatedFormData = new FormData();
+        updatedFormData.set('question', question);
+        options.forEach((opt) => updatedFormData.append('options', opt));
+
+        const res = await updatePoll(poll.id, updatedFormData);
         if (res?.error) {
           setError(res.error);
         } else {
