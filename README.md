@@ -1,95 +1,82 @@
-# ALX Polly: A Polling Application
+# ALX Polly
 
-Welcome to ALX Polly, a full-stack polling application built with Next.js, TypeScript, and Supabase. This project serves as a practical learning ground for modern web development concepts, with a special focus on security best practices.
+A secure, user-friendly polling application built with Next.js and Supabase. Users can create polls, vote, and manage their polls and profiles.
 
----
+## Tech Stack
 
-## 🚨 Security Audit: Vulnerabilities & Remediation
+- **Frontend:** Next.js (App Router), React, Tailwind CSS
+- **Backend/DB:** Supabase (PostgreSQL, Auth, Storage)
+- **Deployment:** Vercel or any Node-compatible platform
 
-As part of a comprehensive security audit, several vulnerabilities were identified in ALX Polly. This section outlines each flaw, its potential impact, and the remedial steps taken to secure the application.
+## Setup
 
-### 1. **Broken Authentication & Session Management**
-- **Flaw:** Sessions were not invalidated upon logout, allowing for potential session hijacking.
-- **Impact:** Attackers could reuse stale session tokens to impersonate users.
-- **Remediation:** Implemented proper session invalidation and ensured JWTs are securely deleted on logout. Added short-lived tokens and refresh mechanisms.
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/der-bew/alx-polly.git
+   cd alx-polly
+   ```
 
-### 2. **Insufficient Access Controls**
-- **Flaw:** API endpoints lacked robust authorization checks; users could access, modify, or delete polls not belonging to them via crafted requests.
-- **Impact:** Unauthorized access to or manipulation of other users' data.
-- **Remediation:** Enforced ownership checks on all poll-related actions. Added middleware to validate user identity before permitting access to sensitive operations.
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-### 3. **SQL Injection via Unsafe Query Construction**
-- **Flaw:** Some database queries directly interpolated user input, allowing for potential SQL injection.
-- **Impact:** Attackers could manipulate queries to exfiltrate or corrupt database records.
-- **Remediation:** Refactored all queries to use parameterized statements and sanitized user input.
+3. **Supabase Configuration**
+   - Create a project at [Supabase.io](https://supabase.io).
+   - Copy your project's `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+   - Set these in your local `.env` file:
 
-### 4. **Cross-Site Scripting (XSS)**
-- **Flaw:** User-generated content (poll questions/answers) was rendered without sufficient sanitization.
-- **Impact:** Attackers could inject malicious scripts, compromising user sessions and data.
-- **Remediation:** Integrated input sanitization and output escaping on all user-provided fields. Utilized libraries for robust XSS protection.
+     ```
+     NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+     NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+     ```
 
-### 5. **Cross-Site Request Forgery (CSRF)**
-- **Flaw:** Some state-changing endpoints (e.g., poll creation, voting) were vulnerable to CSRF due to missing anti-CSRF tokens.
-- **Impact:** Attackers could trick authenticated users into performing unintended actions.
-- **Remediation:** Implemented CSRF tokens for all critical POST/PUT/DELETE requests.
+   - [Optional] Set up additional environment variables as needed (see `.env.example`).
 
-### 6. **Exposed Environment Variables and Secrets**
-- **Flaw:** The repository previously contained hardcoded Supabase keys and secrets.
-- **Impact:** Credential leakage could allow attackers to gain direct access to the backend.
-- **Remediation:** Removed secrets from source control and enforced the use of `.env.local`. Added `.gitignore` rules and rotated credentials.
+4. **Database Tables**
+   - Use Supabase SQL editor to create `polls`, `votes`, and users tables as per the schema in `/supabase/migrations`.
 
-### 7. **Insecure Direct Object References (IDOR)**
-- **Flaw:** Poll and user IDs passed in requests were not sufficiently validated.
-- **Impact:** Attackers could enumerate resources and access other users' polls.
-- **Remediation:** Added strict validation and ownership checks for resource access. Implemented UUIDs and opaque identifiers.
+5. **Run the app locally**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-### 8. **Rate Limiting and Abuse**
-- **Flaw:** No protection against brute-force attacks or API abuse (e.g., spamming poll creation).
-- **Impact:** Service disruption and increased risk of attacks.
-- **Remediation:** Added rate limiting to authentication and poll endpoints using middleware.
+6. **Test the app locally**
+   - Visit [http://localhost:3000](http://localhost:3000)
+   - Register/login and try creating, editing, and voting on polls.
 
-### 9. **Improper Error Handling**
-- **Flaw:** Detailed error messages leaked stack traces and internal logic.
-- **Impact:** Attackers could gain insights for further exploitation.
-- **Remediation:** Standardized error responses and hid internal details from clients.
+## Usage Examples
 
----
+- **Create a Poll**
+  - Click "Create Poll" in the dashboard.
+  - Enter a question and at least two options.
+  - Submit to make the poll public.
 
-## 🛡️ General Remediation Steps
+- **Vote on a Poll**
+  - Select a poll from the dashboard or shared link.
+  - Choose an option and submit your vote.
+  - Results are updated in real time.
 
-1. **Code Review & Refactoring:** All modules were reviewed for security flaws. Query logic and API routes were refactored for safety.
-2. **Dependency Updates:** Upgraded all dependencies to patch known vulnerabilities.
-3. **Automated Security Testing:** Integrated vulnerability scanners and static analysis tools into the CI pipeline.
-4. **Documentation & Developer Training:** Added secure coding guidelines and onboarding documentation.
-5. **Monitoring & Alerting:** Enabled logging and monitoring of suspicious activity in the backend.
+- **Edit/Delete Polls**
+  - Only the poll's creator can edit or delete.
+  - Use the dashboard's "Edit" or "Delete" buttons.
 
----
+## Development & Testing
 
-## ✅ How to Run the Secured Application
-
-1. Clone the repository and install dependencies:
-    ```bash
-    git clone <repository-url>
-    cd alx-polly
-    npm install
-    ```
-
-2. Set up your Supabase project and create a `.env.local` file with your credentials.
-    - **Do NOT commit this file to source control!**
-
-3. Start the development server:
-    ```bash
-    npm run dev
-    ```
-
-4. Access the application at [http://localhost:3000](http://localhost:3000)
+- All authentication and poll actions are handled via Supabase.
+- Use environment variables to point to your Supabase project in development.
+- Run `npm run dev` for hot-reloading.
+- See `/app/lib/actions/` for server actions, and `/app/(dashboard)/` for UI components.
 
 ---
 
-## 📝 Notes for Auditors & Contributors
+## Security Notes
 
-- Please review the `/app/lib/actions/` and `/app/(dashboard)/` directories for critical business logic.
-- All contributions should adhere to the security guidelines outlined above.
-- For further recommendations or to report vulnerabilities, open an issue or pull request.
-
-Happy and secure coding!
+- Session and authorization checks are enforced server-side.
+- All user input is validated and sanitized to prevent XSS and SQL injection.
+- API rate limiting is implemented on sensitive endpoints.
+- See "Security Audit" in this README for details.
